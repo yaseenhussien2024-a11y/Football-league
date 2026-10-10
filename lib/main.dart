@@ -1,13 +1,12 @@
 
-import 'dart:async';
 import 'package:flutter/material.dart';
 
 void main() {
-  runApp(const FootballLeague());
+  runApp(const FootballApp());
 }
 
-class FootballLeague extends StatelessWidget {
-  const FootballLeague({super.key});
+class FootballApp extends StatelessWidget {
+  const FootballApp({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -15,233 +14,145 @@ class FootballLeague extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       title: 'Football League',
       theme: ThemeData.dark(),
-      home: const FootballGame(),
+      home: const FootballHome(),
     );
   }
 }
 
-class FootballGame extends StatefulWidget {
-  const FootballGame({super.key});
+class FootballHome extends StatefulWidget {
+  const FootballHome({super.key});
 
   @override
-  State<FootballGame> createState() => _FootballGameState();
+  State<FootballHome> createState() => _FootballHomeState();
 }
 
-class _FootballGameState extends State<FootballGame> {
+class _FootballHomeState extends State<FootballHome> {
+  int goals = 0;
   double playerX = 0.5;
-  double playerY = 0.72;
-  double ballX = 0.5;
-  double ballY = 0.64;
-
-  int score = 0;
-  int seconds = 60;
-  bool playing = false;
-  Timer? timer;
+  double playerY = 0.7;
+  bool started = false;
 
   void startGame() {
-    timer?.cancel();
-
     setState(() {
+      goals = 0;
       playerX = 0.5;
-      playerY = 0.72;
-      ballX = 0.5;
-      ballY = 0.64;
-      score = 0;
-      seconds = 60;
-      playing = true;
-    });
-
-    timer = Timer.periodic(const Duration(seconds: 1), (t) {
-      if (!mounted) return;
-
-      if (seconds <= 1) {
-        t.cancel();
-        setState(() {
-          seconds = 0;
-          playing = false;
-        });
-      } else {
-        setState(() {
-          seconds--;
-        });
-      }
+      playerY = 0.7;
+      started = true;
     });
   }
 
-  void movePlayer(TapDownDetails details, Size size) {
-    if (!playing) return;
+  void shoot() {
+    if (!started) return;
 
     setState(() {
-      playerX = (details.localPosition.dx / size.width)
-          .clamp(0.08, 0.92)
-          .toDouble();
-
-      playerY = (details.localPosition.dy / size.height)
-          .clamp(0.35, 0.88)
-          .toDouble();
+      goals++;
+      playerX = 0.5;
+      playerY = 0.7;
     });
-  }
-
-  void shootBall() {
-    if (!playing) return;
-
-    setState(() {
-      final closeToBall =
-          (playerX - ballX).abs() < 0.22 &&
-          (playerY - ballY).abs() < 0.18;
-
-      if (closeToBall) {
-        score++;
-        ballX = 0.5;
-        ballY = 0.64;
-        playerX = 0.5;
-        playerY = 0.72;
-      } else {
-        ballY = (ballY - 0.08).clamp(0.15, 0.85).toDouble();
-      }
-    });
-  }
-
-  @override
-  void dispose() {
-    timer?.cancel();
-    super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF10251A),
+      backgroundColor: Colors.green.shade900,
       appBar: AppBar(
         title: const Text('Football League ⚽'),
         centerTitle: true,
-        backgroundColor: Colors.green.shade800,
+        backgroundColor: Colors.green.shade700,
       ),
       body: SafeArea(
         child: Column(
           children: [
-            Padding(
-              padding: const EdgeInsets.all(12),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceAround,
-                children: [
-                  Text(
-                    'Goals: $score',
-                    style: const TextStyle(
-                      fontSize: 22,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  Text(
-                    'Time: $seconds',
-                    style: const TextStyle(
-                      fontSize: 22,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ],
+            const SizedBox(height: 15),
+            Text(
+              'Goals: $goals',
+              style: const TextStyle(
+                fontSize: 26,
+                fontWeight: FontWeight.bold,
               ),
             ),
+            const SizedBox(height: 15),
             Expanded(
               child: LayoutBuilder(
                 builder: (context, constraints) {
-                  final size = Size(
-                    constraints.maxWidth,
-                    constraints.maxHeight,
-                  );
-
                   return GestureDetector(
-                    onTapDown: (details) =>
-                        movePlayer(details, size),
+                    onTapDown: (details) {
+                      if (!started) return;
+
+                      setState(() {
+                        playerX = (details.localPosition.dx /
+                                constraints.maxWidth)
+                            .clamp(0.08, 0.92)
+                            .toDouble();
+
+                        playerY = (details.localPosition.dy /
+                                constraints.maxHeight)
+                            .clamp(0.25, 0.85)
+                            .toDouble();
+                      });
+                    },
                     child: Container(
+                      margin: const EdgeInsets.all(12),
                       width: double.infinity,
-                      margin: const EdgeInsets.all(8),
                       decoration: BoxDecoration(
-                        color: const Color(0xFF168447),
+                        color: Colors.green.shade600,
                         border: Border.all(
                           color: Colors.white,
                           width: 3,
                         ),
-                        borderRadius: BorderRadius.circular(8),
                       ),
                       child: Stack(
                         children: [
                           Positioned.fill(
                             child: CustomPaint(
-                              painter: FieldPainter(),
+                              painter: FootballFieldPainter(),
+                            ),
+                          ),
+                          const Positioned(
+                            top: 5,
+                            left: 0,
+                            right: 0,
+                            child: Center(
+                              child: Text(
+                                '🥅',
+                                style: TextStyle(fontSize: 50),
+                              ),
                             ),
                           ),
                           Positioned(
-                            left: ballX * size.width - 17,
-                            top: ballY * size.height - 17,
+                            left: constraints.maxWidth * 0.5 - 17,
+                            top: constraints.maxHeight * 0.42,
                             child: const Text(
                               '⚽',
-                              style: TextStyle(fontSize: 34),
+                              style: TextStyle(fontSize: 35),
                             ),
                           ),
                           Positioned(
-                            left: playerX * size.width - 20,
-                            top: playerY * size.height - 25,
+                            left: constraints.maxWidth * playerX - 20,
+                            top: constraints.maxHeight * playerY,
                             child: const Column(
                               children: [
                                 Text(
                                   '🔵',
-                                  style: TextStyle(fontSize: 35),
+                                  style: TextStyle(fontSize: 40),
                                 ),
                                 Text(
-                                  'YOU',
+                                  'PLAYER',
                                   style: TextStyle(
                                     color: Colors.white,
                                     fontWeight: FontWeight.bold,
-                                    fontSize: 11,
                                   ),
                                 ),
                               ],
                             ),
                           ),
-                          Positioned(
-                            left: size.width * 0.5 - 20,
-                            top: size.height * 0.12,
-                            child: const Text(
-                              '🥅',
-                              style: TextStyle(fontSize: 48),
-                            ),
-                          ),
-                          if (!playing)
+                          if (!started)
                             Center(
-                              child: Container(
-                                padding: const EdgeInsets.all(20),
-                                decoration: BoxDecoration(
-                                  color: Colors.black87,
-                                  borderRadius: BorderRadius.circular(16),
-                                ),
-                                child: Column(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    Text(
-                                      seconds == 0
-                                          ? 'Game Over!'
-                                          : 'Football Game',
-                                      style: const TextStyle(
-                                        fontSize: 25,
-                                        fontWeight: FontWeight.bold,
-                                      ),
-                                    ),
-                                    const SizedBox(height: 12),
-                                    Text(
-                                      'Your goals: $score',
-                                      style: const TextStyle(fontSize: 18),
-                                    ),
-                                    const SizedBox(height: 15),
-                                    ElevatedButton(
-                                      onPressed: startGame,
-                                      child: Text(
-                                        seconds == 0
-                                            ? 'Play Again'
-                                            : 'Start Game',
-                                      ),
-                                    ),
-                                  ],
+                              child: ElevatedButton(
+                                onPressed: startGame,
+                                child: const Text(
+                                  'START GAME',
+                                  style: TextStyle(fontSize: 22),
                                 ),
                               ),
                             ),
@@ -258,14 +169,11 @@ class _FootballGameState extends State<FootballGame> {
                 width: double.infinity,
                 height: 55,
                 child: ElevatedButton.icon(
-                  onPressed: shootBall,
+                  onPressed: shoot,
                   icon: const Icon(Icons.sports_soccer),
                   label: const Text(
-                    'SHOOT!',
-                    style: TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
-                    ),
+                    'SHOOT',
+                    style: TextStyle(fontSize: 22),
                   ),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.orange,
@@ -281,29 +189,29 @@ class _FootballGameState extends State<FootballGame> {
   }
 }
 
-class FieldPainter extends CustomPainter {
+class FootballFieldPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
-    final linePaint = Paint()
+    final paint = Paint()
       ..color = Colors.white
       ..style = PaintingStyle.stroke
       ..strokeWidth = 2;
 
     canvas.drawRect(
       Rect.fromLTWH(0, 0, size.width, size.height),
-      linePaint,
+      paint,
     );
 
     canvas.drawLine(
       Offset(0, size.height * 0.5),
       Offset(size.width, size.height * 0.5),
-      linePaint,
+      paint,
     );
 
     canvas.drawCircle(
       Offset(size.width * 0.5, size.height * 0.5),
-      size.width * 0.14,
-      linePaint,
+      size.width * 0.15,
+      paint,
     );
 
     canvas.drawRect(
@@ -313,17 +221,7 @@ class FieldPainter extends CustomPainter {
         size.width * 0.5,
         size.height * 0.18,
       ),
-      linePaint,
-    );
-
-    canvas.drawRect(
-      Rect.fromLTWH(
-        size.width * 0.35,
-        0,
-        size.width * 0.3,
-        size.height * 0.08,
-      ),
-      linePaint,
+      paint,
     );
   }
 
